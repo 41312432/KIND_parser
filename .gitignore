@@ -1,0 +1,7 @@
+*.pyc
+data/
+log/
+__init__.py
+*.sh
+*.csv
+*WIP*
