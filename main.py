@@ -53,12 +53,24 @@ def main():
         logger=logger
     )
 
-    orchestrator = PipelineOrchestrator(steps=[pdf_conversion, vlm_table_processing, content_structuring])
     
     initial_context = {
         "output_dir": Path(args.output_dir),
         "file_list_path": Path(args.file_list_path),
     }
+
+    #TODO: (TEMP) source_dirs context from file_list (Maybe it can be within structurer?)
+    file_list_path = Path(args.file_list_path)
+    if file_list_path.exists():
+        with open(file_list_path, 'r', encoding='utf-8') as f:
+            source_dirs = [Path(line.strip()) for line in f if line.strip()]
+        print(source_dirs)
+        initial_context["source_dirs"] = source_dirs
+
+
+    orchestrator = PipelineOrchestrator(steps=[content_structuring])
+    # orchestrator = PipelineOrchestrator(steps=[pdf_conversion, vlm_table_processing, content_structuring])
+    
     
     orchestrator.run(initial_context)
 
