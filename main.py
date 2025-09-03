@@ -54,7 +54,7 @@ def main():
         logger=logger
     )
 
-    orchestrator = PipelineOrchestrator(process=[pdf_conversion, vlm_table_processing, content_structuring])
+    orchestrator = PipelineOrchestrator(steps=[pdf_conversion, vlm_table_processing, content_structuring])
     
     initial_context = {
         "output_dir": Path(args.output_dir),
