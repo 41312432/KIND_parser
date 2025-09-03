@@ -6,6 +6,7 @@ from pathlib import Path
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 from services.pdf_converter import PDFConverter
 from services.document_provider import DocumentProvider
+from services.vlm_table_processor import VLMTableProcessor
 from process.pdf_parsing import PDFParsing
 from process.table_processing import TableProcessing
 
@@ -17,12 +18,19 @@ def main():
     logger.info("Starting processing pipeline...")
     pdf_converter = PDFConverter(logger=logger, model_path=args.model_path, num_threads=args.accelerator_thread, image_resolution=4.0)
     document_provider = DocumentProvider(logger=logger)
+    vlm_processor = VLMTableProcessor(logger=logger, base_url=args.vlm_base_url, model_name=args.vlm_model_name, concurrency_limit=args.vlm_concurrency_limit)
     # 1. PDF Parsing
     pdf_conversion = PDFParsing(
         document_provider=document_provider,
         pdf_converter=pdf_converter,
         logger=logger,
         image_resolution=args.high_res_table_resolution
+    )
+
+    # 2. Table Processing
+    vlm_table_processing = TableProcessing(
+        vlm_processor=vlm_processor,
+        logger=logger
     )
     logger.info("Processing pipeline finished successfully.")
 
