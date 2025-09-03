@@ -38,7 +38,6 @@ def main():
         document_provider=document_provider,
         pdf_converter=pdf_converter,
         logger=logger,
-        image_resolution=args.high_res_table_resolution
     )
 
     # 2. Table Processing

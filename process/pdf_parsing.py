@@ -11,11 +11,10 @@ from models.mcp_infos import FileInfo, DocumentTree
 class PDFParsing(BaseStep, ProcessingStep):
 
     def __init__(self, document_provider: DocumentProvider, pdf_converter: PDFConverter, 
-                 logger: logging.Logger, image_resolution: float):
+                 logger: logging.Logger):
         super().__init__(logger)
         self.document_provider = document_provider
         self.pdf_converter = pdf_converter
-        self.image_resolution = image_resolution
 
     def execute(self, context: Dict[str, Any]) -> None:
         output_dir: Path = context["output_dir"]
@@ -46,8 +45,8 @@ class PDFParsing(BaseStep, ProcessingStep):
         pdf_file_path = self.document_provider.get_pdf_path(node, base_path)
         
         if pdf_file_path:
-            self.logger.info(f"Converting with resolution {self.image_resolution}: {pdf_file_path}")
-            self.pdf_converter.convert_file(pdf_file_path, node_path, self.image_resolution)
+            self.logger.info(f"Converting: {pdf_file_path}")
+            self.pdf_converter.convert_file(file_path=pdf_file_path, result_dir=node_path)
 
         for child_node in doc_tree.get_children(node):
             if child_node.type not in ['gwan', 'jo']:

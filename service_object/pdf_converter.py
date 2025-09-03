@@ -21,7 +21,7 @@ import pymupdf4llm
 
 class PDFConverter:
 
-    def __init__(self, logger, model_path: str, num_threads: int, image_resolution: float):
+    def __init__(self, logger, model_path: str, num_threads: int, image_resolution):
         self.logger = logger
 
         # TODO: Options from args
@@ -40,7 +40,7 @@ class PDFConverter:
 
         table_structure_options = TableStructureOptions(mode = 'accurate', do_cell_matching=True) #TODO: Options from ARGs
 
-        ocr_options = EasyOcrOptions(lang=['ko', 'en'])
+        ocr_options = EasyOcrOptions(lang=['ko'])
 
         self.pipeline_options = PdfPipelineOptions(
             artifacts_path=self.model_path,
@@ -64,7 +64,7 @@ class PDFConverter:
             raise TimeoutError(f"Time out after {seconds} seconds")
         
         original_handler = signal.signal(signal.SIGALRM, timeout_handler)
-        signal.alarm(seconds)
+        signal.alarm(int(seconds))
         try:
             yield
         finally:
