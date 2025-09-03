@@ -4,6 +4,8 @@ import logging
 from pathlib import Path
 
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+from core.orchestrator import PipelineOrchestrator
+
 from services.pdf_converter import PDFConverter
 from services.document_provider import DocumentProvider
 from services.vlm_table_processor import VLMTableProcessor
@@ -44,6 +46,16 @@ def main():
         content_structurer=content_structurer,
         logger=logger
     )
+
+    orchestrator = PipelineOrchestrator(process=[pdf_conversion, vlm_table_processing, content_structuring,])
+    
+    initial_context = {
+        "output_dir": Path(args.output_dir),
+        "file_list_path": Path(args.file_list_path),
+    }
+    
+    orchestrator.run(initial_context)
+
     logger.info("Processing pipeline finished successfully.")
 
 if __name__ == "__main__":
