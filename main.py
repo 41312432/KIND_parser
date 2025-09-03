@@ -4,6 +4,8 @@ import logging
 from pathlib import Path
 
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+
+from utils.arg_parser import get_args
 from core.orchestrator import PipelineOrchestrator
 
 from services.pdf_converter import PDFConverter
@@ -21,6 +23,8 @@ logger = logging.getLogger(__name__)
 
 def main():
     logger.info("Starting processing pipeline...")
+    args = get_args()
+    
     pdf_converter = PDFConverter(logger=logger, model_path=args.model_path, num_threads=args.accelerator_thread, image_resolution=4.0)
     document_provider = DocumentProvider(logger=logger)
     vlm_processor = VLMTableProcessor(logger=logger, base_url=args.vlm_base_url, model_name=args.vlm_model_name, concurrency_limit=args.vlm_concurrency_limit)
