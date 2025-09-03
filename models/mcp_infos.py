@@ -11,12 +11,12 @@ class FileInfo:
     topParentFileName: Optional[str] = None
     _extra: Dict[str, Any] = field(default_factory=dict)
 
-    def __post_init__(self):
-        known_fields = {f.name for f in self.__class__.__dataclass_fields__.values()}
-        extra_args = {k: v for k, v in self.__dict__.items() if k not in known_fields}
-        self._extra = extra_args
-        for k in extra_args:
-            del self.__dict__[k]
+    def __init__(self, **kwargs):
+        known_fields = ['type', 'title', 'fileName', 'parentFileName', 'topParentFileName']
+        
+        for field_name in known_fields: setattr(self, field_name, kwargs.get(field_name))
+
+        self._extra = {k: v for k, v in kwargs.items() if k not in known_fields}
 
 @dataclass
 class MetaInfo:
@@ -28,12 +28,12 @@ class MetaInfo:
     fileInfos: Optional[List[FileInfo]] = None
     _extra: Dict[str, Any] = field(default_factory=dict)
 
-    def __post_init__(self):
-        known_fields = {f.name for f in self.__class__.__dataclass_fields__.values()}
-        extra_args = {k: v for k, v in self.__dict__.items() if k not in known_fields}
-        self._extra = extra_args
-        for k in extra_args:
-            del self.__dict__[k]
+    def __init__(self, **kwargs):
+        known_fields = ['id', 'code', 'name', 'attachedInfos', 'lawInfos', 'fileInfos']
+        
+        for field_name in known_fields: setattr(self, field_name, kwargs.get(field_name))
+        
+        self._extra = {k: v for k, v in kwargs.items() if k not in known_fields}
 
 class DocumentTree:
     def __init__(self, file_infos: List[FileInfo]):
