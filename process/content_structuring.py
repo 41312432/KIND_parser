@@ -16,7 +16,10 @@ class ContentStructuring(BaseStep, ProcessingStep):
 
     def execute(self, context: Dict[str, Any]) -> None:
         output_dir: Path = context["output_dir"]
-        source_dirs: List[Path] = context.get("source_dirs", [])
+        file_list_path: Path = context["file_list_path"]
+
+        with open(file_list_path, 'r', encoding='utf-8') as f:
+            source_dirs = [Path(line.strip()) for line in f if line.strip()]
         
         if not source_dirs:
              self.logger.warning("No source directories found in context for structuring.")
