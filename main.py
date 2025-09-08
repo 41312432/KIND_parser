@@ -27,39 +27,56 @@ logger = ops_logging.get_logger("service")
 def main():
     logger.info("Starting processing pipeline...")
     args = get_args()
+
+    steps = []
+
+    if 'pdf_conversion' in args.steps:
+        logger.info(f"Process PDF Converting")
+
+        pdf_converter = PDFConverter(logger=logger, model_path=args.model_path, num_threads=args.accelerator_thread, image_resolution=4.0)
+        document_provider = DocumentProvider(logger=logger)
+
+        # 1. PDF Parsing
+        pdf_conversion = PDFParsing(
+            document_provider=document_provider,
+            pdf_converter=pdf_converter,
+            logger=logger,
+        )
+
+        steps.append(pdf_conversion)
+
+    if 'vlm_processing' in args.steps:
+        logger.info(f"Process Table Parsing")
+
+        vlm_processor = VLMTableProcessor(logger=logger, base_url=args.vlm_base_url, model_name=args.vlm_model_name, concurrency_limit=args.vlm_concurrency_limit)
+
+        # 2. Table Processing
+        vlm_table_processing = TableProcessing(
+            vlm_processor=vlm_processor,
+            logger=logger
+        )
+        steps.append(vlm_table_processing)
     
-    pdf_converter = PDFConverter(logger=logger, model_path=args.model_path, num_threads=args.accelerator_thread, image_resolution=4.0)
-    document_provider = DocumentProvider(logger=logger)
-    vlm_processor = VLMTableProcessor(logger=logger, base_url=args.vlm_base_url, model_name=args.vlm_model_name, concurrency_limit=args.vlm_concurrency_limit)
-    content_structurer = ContentStructurer(logger=logger)
+    if 'content_structuring' in args.steps:
+        logger.info(f"Process Content Structuring")
 
-    # 1. PDF Parsing
-    pdf_conversion = PDFParsing(
-        document_provider=document_provider,
-        pdf_converter=pdf_converter,
-        logger=logger,
-    )
+        content_structurer = ContentStructurer(logger=logger)
+        document_provider = DocumentProvider(logger=logger)
 
-    # 2. Table Processing
-    vlm_table_processing = TableProcessing(
-        vlm_processor=vlm_processor,
-        logger=logger
-    )
-    
-    # 3. Content Structuring
-    content_structuring = ContentStructuring(
-        document_provider=document_provider,
-        content_structurer=content_structurer,
-        logger=logger
-    )
-
+        # 3. Content Structuring
+        content_structuring = ContentStructuring(
+            document_provider=document_provider,
+            content_structurer=content_structurer,
+            logger=logger
+        )
+        steps.append(content_structuring)
     
     initial_context = {
         "output_dir": Path(args.output_dir),
         "file_list_path": Path(args.file_list_path),
     }
 
-    orchestrator = PipelineOrchestrator(steps=[pdf_conversion, vlm_table_processing, content_structuring])
+    orchestrator = PipelineOrchestrator(steps=steps)
     
     orchestrator.run(initial_context)
 
