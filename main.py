@@ -33,14 +33,19 @@ def main():
     if 'pdf_conversion' in args.steps:
         logger.info(f"Process PDF Converting")
 
-        pdf_converter = PDFConverter(logger=logger, model_path=args.model_path, num_threads=args.accelerator_thread, image_resolution=4.0)
+        pdf_converter_config = {
+            "model_path": args.model_path,
+            "num_threads": args.accelerator_thread,
+            "image_resolution": args.image_resolution
+        }
         document_provider = DocumentProvider(logger=logger)
 
         # 1. PDF Parsing
         pdf_conversion = PDFParsing(
             document_provider=document_provider,
-            pdf_converter=pdf_converter,
+            pdf_converter_config=pdf_converter_config,
             logger=logger,
+            num_workers=args.pdf_parsing_num_workers
         )
 
         steps.append(pdf_conversion)
