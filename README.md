@@ -86,7 +86,7 @@ You can run each step independently using the --step argument in main.py. This i
     Parses the source PDF files to generate Markdown and high-resolution table images.
     ```Bash
 
-    python main.py --step pdf_conversion --file_list_path ./path/to/your_list.txt
+    python main.py --steps pdf_conversion
     ```
 
 - Step 2: vlm_processing
@@ -94,7 +94,7 @@ You can run each step independently using the --step argument in main.py. This i
     Processes the table images from Step 1 with a VLM, then replaces and merges the tables in the original Markdown.
     ```Bash
 
-    python main.py --step vlm_processing --file_list_path ./path/to/your_list.txt
+    python main.py --steps vlm_processing
     ```
 
 - Step 3: structuring
@@ -102,7 +102,7 @@ You can run each step independently using the --step argument in main.py. This i
     Takes the final Markdown from Step 2 and splits it into "Sections" (Gwan) and "Articles" (Jo) to create the final folder structure.
     ``` Bash
 
-    python main.py --step structuring --file_list_path ./path/to/your_list.txt
+    python main.py --steps structuring
     ```
 
 - Command-Line Arguments
@@ -111,15 +111,23 @@ You can run each step independently using the --step argument in main.py. This i
     ```Bash
 
     python main.py \
-    --step pdf_conversion \
-    --output_dir ./output \
+    --accelerator_thread 128 \
+    --model_path "$MODEL_PATH" \
+    --data_dir "$DATA_DIR" \
+    --output_dir "$OUTPUT_DIR" \
+    --file_list_path "$FILE_LIST_PATH" \
+    --pdf_parsing_num_workers 10 \
     --image_resolution 4.0 \
-    --vlm_concurrency_limit 100
+    --vlm_base_url "http://50.50.79.151:8000/v1" \
+    --vlm_model_name "Nanonets-OCR-s" \
+    --vlm_concurrency_limit 300 \
+    --steps "pdf_conversion"
     ...
     ```
 
 ## 🏗️ Project Structure
 
+```
 parser/
 ├── main.py                 # CLI Entrypoint
 ├── pdf_parsing.sh          # Pipeline Execution Script
@@ -128,6 +136,7 @@ parser/
 ├── service-object/         # Business logic services (PDFConverter, VLMProcessor, etc.)
 ├── models/                 # Data classes and models (FileInfo, DocumentTree)
 └── utils/                  # Utility modules (ArgParser, Constants)
+```
 
 ## 🙏 Acknowledgements
 
@@ -135,10 +144,10 @@ This project would not have been possible without the powerful document analysis
 
 ## 📝 TODO
 
-    [ ] Parallel Processing (Auto-calculate process num)
+    [ ✅ ] Parallel Processing (Auto-calculate process num)
 
-    [ ] Constants to paths and parameters.
+    [ ✅ ] Constants to paths and parameters.
 
-    [ ] Unit and integration tests for each service and step.
+    [ 🟢 ] Unit and integration tests for each service and step.
 
-    [ ] Table postprocess Algorithm.
+    [ 🔴 ] Table postprocess Algorithm.
