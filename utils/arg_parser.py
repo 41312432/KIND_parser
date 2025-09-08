@@ -4,7 +4,7 @@ def get_args():
     parser = argparse.ArgumentParser(description="MCP Document Processing Pipeline")
 
     parser.add_argument('--accelerator_thread', type=int, default=128)
-    parser.add_argument('--model_path', type=str, default='/workspace/docling/docling-models/model_artifacts')
+    parser.add_argument('--model_path', type=str, default='/workspace/mnt/local-repo/hf_models/docling-models/model_artifacts')
     parser.add_argument('--data_dir', type=str, default='/workspace/data/mcpdata/pdf/mts_')
     parser.add_argument('--output_dir', type=str, default='/workspace/mnt/local-repo/mcpdata/parser_test')
     parser.add_argument('--file_list_path', type=str, default='/workspace/kind_parser/data/parser_test.txt')
