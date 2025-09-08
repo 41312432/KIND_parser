@@ -1,5 +1,5 @@
 import logging
-from typing import Dict, Any
+from typing import List, Dict, Any
 from pathlib import Path
 
 from core.processing import ProcessingStep
@@ -7,6 +7,7 @@ from process.base_step import BaseStep
 from service_object.document_provider import DocumentProvider
 from service_object.pdf_converter import PDFConverter
 from models.mcp_infos import FileInfo, DocumentTree
+from utils.utils import create_directory, FolderName
 
 class PDFParsing(BaseStep, ProcessingStep):
 
@@ -20,7 +21,7 @@ class PDFParsing(BaseStep, ProcessingStep):
         output_dir: Path = context["output_dir"]
         file_list_path: Path = context["file_list_path"]
         
-        output_dir.mkdir(exist_ok=True, parents=True)
+        create_directory(output_dir)
         
         source_dirs = self._get_file_list(file_list_path)
         context["source_dirs"] = source_dirs 
@@ -38,9 +39,24 @@ class PDFParsing(BaseStep, ProcessingStep):
             for root_node in doc_tree.get_root_nodes():
                 self._process_node_recursively(root_node, source_dir, result_path, doc_tree)
 
+            self._process_special_file_list(
+                file_list = meta_info.attachedInfos,
+                base_path=source_dir,
+                result_path=result_path,
+                folder_name=FolderName.ATTACHMENT
+            )
+
+            # self._process_special_file_list(
+            #     file_list = meta_info.lawInfos,
+            #     base_path=source_dir,
+            #     result_path=result_path,
+            #     folder_name=FolderName.LAW
+            # )
+            # !NOTE: WE DONT NEED LAWS
+
     def _process_node_recursively(self, node: FileInfo, base_path: Path, current_output_path: Path, doc_tree: DocumentTree):
         node_path = current_output_path / self.document_provider.sanitize_title(node.title)
-        node_path.mkdir(exist_ok=True, parents=True)
+        create_directory(node_path)
         
         pdf_file_path = self.document_provider.get_pdf_path(node, base_path)
         
@@ -51,3 +67,27 @@ class PDFParsing(BaseStep, ProcessingStep):
         for child_node in doc_tree.get_children(node):
             if child_node.type not in ['gwan', 'jo']:
                 self._process_node_recursively(child_node, base_path, node_path, doc_tree)
+
+    def _process_special_file_list(self, file_list: List[Dict], base_path: Path, result_path: Path, folder_name: str):
+        # for attached, law
+
+        if not file_list: return
+        
+        self.logger.info(f"Processing PDF files for attachement '{folder_name}")
+
+        target_path = result_path / folder_name
+        create_directory(target_path)
+
+        for file_info in file_list:
+            title = file_info.get('title')
+            file_name = file_info.get('fileName')
+
+            sanitized_title = self.document_provider.sanitize_title(title)
+            item_result_dir = target_path / sanitized_title
+            create_directory(item_result_dir)
+
+            pdf_path = base_path / file_name
+            if pdf_path.exists():
+                self.pdf_converter.convert_file(pdf_path, item_result_dir)
+            else:
+                self.logger.warning(f"Attached PDF not found, skipping: {pdf_path}")
