@@ -1,0 +1,2 @@
+--extra-index-url http://10.92.20.77:8081/repository/pypi-hosted/simple --trusted-host 10.92.20.77
+ops-logging==1.0.0

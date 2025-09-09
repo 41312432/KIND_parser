@@ -12,20 +12,23 @@ from service_object.pdf_converter import PDFConverter
 from models.mcp_infos import FileInfo, DocumentTree
 from utils.utils import create_directory
 from utils.constants import FolderName
+import ops_logging
+
 
 def process_document(task: Dict[str, Any]):
+    
     source_dir = task["source_dir"]
     output_dir = task["output_dir"]
 
     pid = os.getpid()
-
-    worker_logger = logging.getLogger(f"worker_{pid}")
-    if not worker_logger.handlers:
-        handler = logging.StreamHandler()
-        formatter = logging.Formatter(f'[%(asctime)s][Worker-{pid}][{source_dir.name}] %(message)s')
-        handler.setFormatter(formatter)
-        worker_logger.addHandler(handler)
-        worker_logger.setLevel(logging.INFO)
+    worker_logger = ops_logging.get_logger(f"worker-{pid}")
+    # worker_logger = logging.getLogger(f"worker_{pid}")
+    # if not worker_logger.handlers:
+    #     handler = logging.StreamHandler()
+    #     formatter = logging.Formatter(f'[%(asctime)s][Worker-{pid}][{source_dir.name}] %(message)s')
+    #     handler.setFormatter(formatter)
+    #     worker_logger.addHandler(handler)
+    #     worker_logger.setLevel(logging.INFO)
 
     doc_provider = DocumentProvider(logger=worker_logger)
     converter = PDFConverter(
