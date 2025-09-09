@@ -1,0 +1,19 @@
+FROM python:3.12
+ARG SERVICE_BASE_ENV
+ARG SERVICE_BASE_IMAGE
+ARG DOCLING_MODELS
+ARG NANONET_OCR
+
+ENV SERVICE_BASE_ENV=${SERVICE_BASE_ENV}
+ENV SERVICE_BASE_IMAGE=${SERVICE_BASE_IMAGE}
+
+RUN pip config --global set global.trusted_host 10.91.11.141
+RUN pip config --global set global.index_url http://10.91.11.141:3141/root/pypi/+simple/
+
+COPY requirements.txt requirements-tools.txt /workspace/
+RUN pip install -r /workspace/requirements.txt
+
+RUN mkdir -p /data/model/; \
+    wget ${DOCLING_MODELS} -P /tmp/; tar -xvf /tmp/docling-models*.tar -C /data/model/; rm /tmp/docling-models*.tar; \
+    wget ${NANONET_OCR} -P /tmp/; tar -xvf /tmp/Nanonets-OCR-s*.tar -C /data/model/; rm /tmp/Nanonets-OCR-s*.tar
+
