@@ -14,10 +14,12 @@ from service_object.pdf_converter import PDFConverter
 from service_object.document_provider import DocumentProvider
 from service_object.vlm_table_processor import VLMTableProcessor
 from service_object.content_structurer import ContentStructurer
+from service_object.db_uploader import DBUploader
 
 from process.pdf_parsing import PDFParsing
 from process.table_processing import TableProcessing
 from process.content_structuring import ContentStructuring
+from process.db_uploading import DBUploading
 
 # ops_logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s',
 #                     handlers=[logging.StreamHandler(sys.stdout)], force=True)
@@ -75,6 +77,21 @@ def main():
             logger=logger
         )
         steps.append(content_structuring)
+
+    if 'db_loading' in args.steps:
+        logger.info(f"Process DB Loading")
+
+        db_config = {
+            'host': '10.20.49.50',
+            'port': 13306,
+            'user': 'kindapp',
+            'password': 'Claimmng!@34',
+            'dbname': 'dbkind'
+        }
+
+        db_uploader = DBUploader(db_config=db_config, logger=logger)
+        db_uploading = DBUploading(uploader=db_uploader,logger=logger)
+        steps.append(db_uploading)
     
     initial_context = {
         "output_dir": Path(args.output_dir),
