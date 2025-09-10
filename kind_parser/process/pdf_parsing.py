@@ -11,9 +11,8 @@ from service_object.document_provider import DocumentProvider
 from service_object.pdf_converter import PDFConverter
 from models.mcp_infos import FileInfo, DocumentTree
 from utils.utils import create_directory
-from utils.constants import FolderName
+from utils.constants import FolderName, FileName
 import ops_logging
-
 
 def process_document(task: Dict[str, Any]):
     
@@ -50,12 +49,23 @@ def process_document(task: Dict[str, Any]):
     def _process_node_recursively_worker(node, base_path, current_output_path, doc_tree, doc_provider, converter, logger):
         node_path = current_output_path / doc_provider.sanitize_title(node.title)
         create_directory(node_path)
+
+        children = doc_tree.get_children(node)
+
         pdf_file_path = doc_provider.get_pdf_path(node, base_path)
         if pdf_file_path:
+            gwan_children = [child for child in children if child.type == 'gwan']
+            if gwan_children:
+                logger.info(f"Found {len(gwan_children)}'gwan'")
+                toc_content = "\n".join([child.title for child in gwan_children])
+                with open(node_path / FileName.TOC, 'w', encoding='utf-8') as f:
+                    f.write(toc_content)
+
             logger.info(f"Converting main doc: {pdf_file_path}")
             converter.convert_file(file_path=pdf_file_path, result_dir=node_path)
-        for child_node in doc_tree.get_children(node):
-            if child_node.type not in ['gwan', 'jo']:
+
+        for child_node in children:
+            if child_node.type not in ['jo']:
                 _process_node_recursively_worker(child_node, base_path, node_path, doc_tree, doc_provider, converter, logger)
 
     def _process_special_file_list_worker(file_list, base_path, result_path, folder_name, doc_provider, converter, logger):
