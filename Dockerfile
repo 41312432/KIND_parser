@@ -8,5 +8,5 @@ WORKDIR /workspace
 ENV SERVICE_ENV=${SERVICE_ENV}
 ENV SERVICE_IMAGE=${SERVICE_IMAGE}
 
-COPY kind_parser /workspace/
-
+COPY kind_parser /workspace/kind_parser
+COPY script /workspace/script

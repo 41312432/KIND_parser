@@ -14,9 +14,9 @@ APP_IMAGE_TAG=$APP_IMAGE_TAG
 
 APP_IMAGE_REPO_TAG=$APP_IMAGE_REPO:$APP_IMAGE_TAG
 
-docker images | grep $APP_BASE_IMAGE_REPO_TAG 
+# docker images | grep $APP_BASE_IMAGE_REPO_TAG 
 
-docker pull $APP_BASE_IMAGE_REPO_TAG
+# docker pull $APP_BASE_IMAGE_REPO_TAG
 
 
 docker build --network=host -t $APP_IMAGE_REPO_TAG \
