@@ -19,6 +19,7 @@ python main.py \
     --model_path $MODEL_PATH \
     --accelerator_thread $ACCELERATOR_THREAD \
     --image_resolution $IMAGE_RESOLUTION \
+    --pdf_parsing_num_workers $PDF_PARSING_NUM_WORKERS \
     --data_dir $DATA_DIR \
     --file_list_path $FILE_LIST_PATH \
     --output_dir $OUTPUT_DIR
