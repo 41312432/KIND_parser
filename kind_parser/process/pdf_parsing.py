@@ -2,7 +2,6 @@ import logging
 import os
 from typing import List, Dict, Any
 from pathlib import Path
-import shutil
 
 from multiprocessing import Pool, cpu_count
 
@@ -46,20 +45,6 @@ def process_document(task: Dict[str, Any]):
     
     worker_logger.info(f"Processing started for {meta_info.id}_{meta_info.name}")
     result_path = output_dir / meta_info.id
-    create_directory(result_path)
-
-    try:
-        source_meta_path = source_dir / FileName.TERMS_FILE_LIST
-        dest_meta_path = result_path / "termsFileList.json"
-        
-        if source_meta_path.exists():
-            shutil.copy2(source_meta_path, dest_meta_path)
-            worker_logger.info(f"Copied termsFileList.json to {dest_meta_path}")
-        else:
-            worker_logger.warning(f"Source meta file not found for copying: {source_meta_path}")
-    except Exception as e:
-        worker_logger.error(f"Failed to copy termsFileList.json: {e}")
-    
 
     def _process_node_recursively_worker(node, base_path, current_output_path, doc_tree, doc_provider, converter, logger):
         node_path = current_output_path / doc_provider.sanitize_title(node.title)
