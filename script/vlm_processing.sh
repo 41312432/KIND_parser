@@ -12,8 +12,10 @@ set -xe
 
 cd $KIND_PARSER_PATH
 
-vllm serve $VLM_MODEL_PATH --served-model-name $VLM_MODEL_NAME --port 8000 &
-while true; do curl localhost:8000/health && break; sleep 1; done
+# vllm 별도 구성하는 것으로 변경
+# vllm serve $VLM_MODEL_PATH --served-model-name $VLM_MODEL_NAME --port 8000 &
+# while true; do curl localhost:8000/health && break; sleep 1; done
+
 python main.py \
     --steps vlm_processing \
     --vlm_base_url $VLM_BASE_URL \
