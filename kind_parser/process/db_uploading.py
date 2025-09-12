@@ -1,5 +1,5 @@
 import logging
-from typing import Dict, Any
+from typing import Dict, Any, List
 from pathlib import Path
 
 from core.processing import ProcessingStep
@@ -12,14 +12,12 @@ class DBUploading(BaseStep, ProcessingStep):
         self.uploader = uploader
 
     def execute(self, context: Dict[str, Any]) -> None:
+        data_dir: Path = context["data_dir"]
         output_dir: Path = context["output_dir"]
-        file_list_path: Path = context["file_list_path"]
+        target_list: List = context["target_list"]
 
-        with open(file_list_path, 'r', encoding='utf-8') as f:
-            source_dirs = [Path(line.strip()) for line in f if line.strip()]
-
-        for source_dir in source_dirs:
-            target_id = Path(source_dir).name
+        for target in target_list:
+            target_id = data_dir / Path(target[0])
             target_folder = output_dir / target_id
             
             self.logger.info(f"\n===== Starting DB upload for: {target_folder} =====")

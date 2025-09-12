@@ -17,7 +17,8 @@ import ops_logging
 
 def process_document(task: Dict[str, Any]):
     
-    source_dir = task["source_dir"]
+    target_id = task["target_id"]
+    target_source_dir = task["target_source_dir"]
     output_dir = task["output_dir"]
 
     pid = os.getpid()
@@ -38,10 +39,10 @@ def process_document(task: Dict[str, Any]):
         image_resolution=task["image_resolution"],
     )
 
-    meta_info = doc_provider.get_meta_info(source_dir)
+    meta_info = doc_provider.get_meta_info(target_source_dir)
 
     if not meta_info:
-        worker_logger.warning(f"Skipping {source_dir} due to missing meta info")
+        worker_logger.warning(f"Skipping {target_source_dir} due to missing meta info")
         return
     
     worker_logger.info(f"Processing started for {meta_info.id}_{meta_info.name}")
@@ -49,7 +50,7 @@ def process_document(task: Dict[str, Any]):
     create_directory(result_path)
 
     try:
-        source_meta_path = source_dir / FileName.TERMS_FILE_LIST
+        source_meta_path = target_source_dir / FileName.TERMS_FILE_LIST
         dest_meta_path = result_path / "termsFileList.json"
         
         if source_meta_path.exists():
@@ -106,7 +107,7 @@ def process_document(task: Dict[str, Any]):
         for root_node in doc_tree.get_root_nodes():
             _process_node_recursively_worker(
                 node=root_node, 
-                base_path=source_dir, 
+                base_path=target_source_dir, 
                 current_output_path=result_path, 
                 doc_tree=doc_tree, 
                 doc_provider=doc_provider,
@@ -115,7 +116,7 @@ def process_document(task: Dict[str, Any]):
             )
         _process_special_file_list_worker(
             file_list=meta_info.attachedInfos, 
-            base_path=source_dir, 
+            base_path=target_source_dir, 
             result_path=result_path, 
             folder_name=FolderName.ATTACHMENT,
             doc_provider=doc_provider,
@@ -133,19 +134,21 @@ class PDFParsing(BaseStep, ProcessingStep):
         self.num_workers = num_workers
 
     def execute(self, context: Dict[str, Any]) -> None:
+        data_dir: Path = context["data_dir"]
         output_dir: Path = context["output_dir"]
-        file_list_path: Path = context["file_list_path"]
+        target_list: List = context["target_list"]
+        # file_list_path: Path = context["file_list_path"]
         
         create_directory(output_dir)
         
-        source_dirs = self._get_file_list(file_list_path)
-        context["source_dirs"] = source_dirs 
+        # context["source_dirs"] = source_dirs 
 
         tasks = []
 
-        for source_dir in source_dirs:
+        for target in target_list:
             task = {
-                "source_dir": source_dir,
+                "target_id": Path(target[0]),
+                "target_source_dir": data_dir / Path(target[2]),
                 "output_dir": output_dir,
                 "model_path": self.pdf_converter_config["model_path"],
                 "num_threads": self.pdf_converter_config["num_threads"],

@@ -16,21 +16,12 @@ class ContentStructuring(BaseStep, ProcessingStep):
 
     def execute(self, context: Dict[str, Any]) -> None:
         output_dir: Path = context["output_dir"]
-        file_list_path: Path = context["file_list_path"]
+        target_list: List = context["target_list"]
 
-        with open(file_list_path, 'r', encoding='utf-8') as f:
-            source_dirs = [Path(line.strip()) for line in f if line.strip()]
-        
-        if not source_dirs:
-             self.logger.warning("No source directories found in context for structuring.")
-             return
-
-        for source_dir in sorted(source_dirs):
-            meta_info = self.document_provider.get_meta_info(source_dir)
-            if not meta_info:
-                continue
-
-            result_path = output_dir / meta_info.id
+        for target in target_list:
+            target_id = Path(target[0])
+            result_path = output_dir / target_id
+            
             if not result_path.exists():
                 self.logger.warning(f"Result directory not found, skipping structuring for: {result_path}")
                 continue
