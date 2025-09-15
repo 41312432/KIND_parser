@@ -21,7 +21,7 @@ from service_object.db_uploader import DBUploader
 from process.pdf_parsing import PDFParsing
 from process.table_processing import TableProcessing
 from process.content_structuring import ContentStructuring
-from process.db_uploading import DBUploading
+from process.db_uploading import DBUploading, config
 
 import pymysql
 
@@ -151,7 +151,7 @@ def main():
     if 'db_loading' in args.steps:
         logger.info(f"Process DB Loading")
 
-        db_uploader = DBUploader(db_config=db_config, logger=logger)
+        db_uploader = DBUploader(db_config=config, logger=logger) #FIXME: Refactoring using db.py
         db_uploading = DBUploading(uploader=db_uploader,logger=logger)
         steps.append(db_uploading)
     
