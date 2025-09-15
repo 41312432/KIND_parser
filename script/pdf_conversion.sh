@@ -16,6 +16,9 @@ echo $ACCELERATOR_THREAD
 
 python main.py \
     --steps pdf_conversion \
+    --num_global_worker $NUM_GLOBAL_WORKER \
+    --num_local_worker $NUM_LOCAL_WORKER \
+    --root_global_worker_id $ROOT_GLOBAL_WORKER_ID \
     --model_path $MODEL_PATH \
     --accelerator_thread $ACCELERATOR_THREAD \
     --image_resolution $IMAGE_RESOLUTION \
