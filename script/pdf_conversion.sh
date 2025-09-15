@@ -24,7 +24,6 @@ python main.py \
     --image_resolution $IMAGE_RESOLUTION \
     --pdf_parsing_num_workers $PDF_PARSING_NUM_WORKERS \
     --data_dir $DATA_DIR \
-    --file_list_path $FILE_LIST_PATH \
     --output_dir $OUTPUT_DIR
 
 # export KIND_PARSER_PATH=/workspace/kind_parser/; source .env; ./pdf_conversion.sh
