@@ -37,6 +37,7 @@ def process_document(task: Dict[str, Any]):
         model_path=task["model_path"],
         num_threads=task["num_threads"],
         image_resolution=task["image_resolution"],
+        local_gpu_id=task["gpu_id"]
     )
 
     meta_info = doc_provider.get_meta_info(target_source_dir)
@@ -153,7 +154,8 @@ class PDFParsing(BaseStep, ProcessingStep):
                 "model_path": self.pdf_converter_config["model_path"],
                 "num_threads": self.pdf_converter_config["num_threads"],
                 "image_resolution": self.pdf_converter_config["image_resolution"],
-                "timeout": 120
+                "timeout": 120,
+                "gpu_id": self.pdf_converter_config["gpu_id"]
             }
             tasks.append(task)
 

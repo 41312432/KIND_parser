@@ -4,6 +4,7 @@ import logging
 from pathlib import Path
 import ops_logging
 
+from multiprocessing import Process, set_start_method
 
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
@@ -43,6 +44,45 @@ def _connect(db_config):
         raise
     return None
 
+def run_local_worker(task_info: dict):
+    pid = os.getpid()
+    worker_logger = ops_logging.get_logger(f"worker-{pid}")
+
+    local_gpu_id = task_info["local_gpu_id"]
+    global_rank = task_info["global_rank"]
+    
+    full_target_list = task_info["target_list"]
+    world_size = task_info["num_global_worker"]
+    
+    my_target_list = [
+        target for i, target in enumerate(full_target_list)
+        if i % world_size == global_rank
+    ]
+    
+    args = task_info["args"]
+    pdf_converter_config = {
+        "model_path": args.model_path,
+        "num_threads": args.accelerator_thread,
+        "image_resolution": args.image_resolution,
+        "gpu_id": local_gpu_id
+    }
+    document_provider = DocumentProvider(logger=worker_logger)
+    
+    pdf_conversion_step = PDFParsing(
+        document_provider=document_provider,
+        pdf_converter_config=pdf_converter_config,
+        logger=worker_logger,
+        num_workers=args.pdf_parsing_num_workers,
+    )
+    
+    context = {
+        "data_dir": Path(args.data_dir),
+        "output_dir": Path(args.output_dir),
+        "target_list": my_target_list, # 필터링된 목록을 context에 전달
+    }
+    
+    pdf_conversion_step.execute(context)
+
 def main():
     logger.info("Starting processing pipeline...")
     args = get_args()
@@ -76,17 +116,44 @@ def main():
             "num_threads": args.accelerator_thread,
             "image_resolution": args.image_resolution
         }
-        document_provider = DocumentProvider(logger=logger)
 
-        # 1. PDF Parsing
-        pdf_conversion = PDFParsing(
-            document_provider=document_provider,
-            pdf_converter_config=pdf_converter_config,
-            logger=logger,
-            num_workers=args.pdf_parsing_num_workers
-        )
+        gpu_worker_tasks = []
 
-        steps.append(pdf_conversion)
+        for i in range(args.num_local_worker):
+            local_gpu_id = i
+            global_rank = args.root_global_worker_id+i
+
+            task_info = {
+                "local_gpu_id": local_gpu_id,
+                "global_rank": global_rank,
+                "num_global_worker": args.num_global_worker,
+                "target_list": target_list,
+                "args": args # 나머지 모든 인자를 그대로 전달
+            }
+            gpu_worker_tasks.append(task_info)
+
+        processes = []
+        for task in gpu_worker_tasks:
+            p = Process(target=run_local_worker, args=(task, ))
+            processes.append(p)
+            p.start()
+        for p in processes:
+            p.join()
+
+        # with Pool(processes=args.num_local_worker) as pool:
+        #     pool.map(run_local_worker, gpu_worker_tasks)
+
+        # document_provider = DocumentProvider(logger=logger)
+
+        # # 1. PDF Parsing
+        # pdf_conversion = PDFParsing(
+        #     document_provider=document_provider,
+        #     pdf_converter_config=pdf_converter_config,
+        #     logger=logger,
+        #     num_workers=args.pdf_parsing_num_workers
+        # )
+
+        # steps.append(pdf_conversion)
 
     if 'vlm_processing' in args.steps:
         logger.info(f"Process Table Parsing")

@@ -21,13 +21,14 @@ import pymupdf4llm
 
 class PDFConverter:
 
-    def __init__(self, logger, model_path: str, num_threads: int, image_resolution):
+    def __init__(self, logger, model_path: str, num_threads: int, image_resolution: float, local_gpu_id: int):
         self.logger = logger
 
         # TODO: Options from args
         self.model_path = model_path
         self.num_threads = num_threads
         self.image_resolution = image_resolution
+        self.local_gpu_id = local_gpu_id
 
         self.pipeline_options = None
         self.document_converter = None
@@ -36,7 +37,7 @@ class PDFConverter:
         self._create_converter(self.pipeline_options)
 
     def _setup_pipeline_options(self):
-        accelerator_options = AcceleratorOptions(num_threads=self.num_threads, device=AcceleratorDevice.CUDA) #By Default
+        accelerator_options = AcceleratorOptions(num_threads=self.num_threads, device=f'cuda:{self.local_gpu_id}') #By Default
 
         table_structure_options = TableStructureOptions(mode = 'accurate', do_cell_matching=True) #TODO: Options from ARGs
 
