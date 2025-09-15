@@ -9,7 +9,7 @@ from multiprocessing import Process
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 from utils.arg_parser import get_args
-from utils.db import execute, get_status_target_list_query
+from utils.db import execute, get_status_target_list_query, config
 from core.orchestrator import PipelineOrchestrator
 
 from service_object.pdf_converter import PDFConverter
@@ -21,12 +21,9 @@ from service_object.db_uploader import DBUploader
 from process.pdf_parsing import PDFParsing
 from process.table_processing import TableProcessing
 from process.content_structuring import ContentStructuring
-from process.db_uploading import DBUploading, config
-
-import pymysql
+from process.db_uploading import DBUploading
 
 logger = ops_logging.get_logger("service")
-
 
 def run_local_worker(task_info: dict):
     pid = os.getpid()
