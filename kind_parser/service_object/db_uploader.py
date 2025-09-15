@@ -31,7 +31,7 @@ class DBUploader:
             self.conn = pymysql.connect(
                 host=self.db_config['host'], port=self.db_config['port'],
                 user=self.db_config['user'], password=self.db_config['password'],
-                database=self.db_config['dbname'], charset='utf8mb4'
+                database=self.db_config['database'], charset='utf8mb4'
             )
             self.cursor = self.conn.cursor()
         except pymysql.Error as e:

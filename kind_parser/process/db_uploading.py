@@ -17,7 +17,7 @@ class DBUploading(BaseStep, ProcessingStep):
         target_list: List = context["target_list"]
 
         for target in target_list:
-            target_id = data_dir / Path(target[0])
+            target_id = Path(target[0])
             target_folder = output_dir / target_id
             
             self.logger.info(f"\n===== Starting DB upload for: {target_folder} =====")
