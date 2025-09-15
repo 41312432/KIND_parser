@@ -12,7 +12,7 @@ config = {
     "user": os.environ.get("DB_USER"),
     "password": os.environ.get("DB_PASSWORD"),
     "database": os.environ.get("DB_DATABASE", "dbkind"),
-    "cursorclass": pymysql.cursors.DictCursor
+    # "cursorclass": pymysql.cursors.DictCursor
 }
 
 @contextmanager

@@ -21,4 +21,5 @@ python main.py \
     --vlm_base_url $VLM_BASE_URL \
     --vlm_model_name $VLM_MODEL_NAME \
     --vlm_concurrency_limit $VLM_CONCURRENCY_LIMIT \
+    --data_dir $DATA_DIR \
     --output_dir $OUTPUT_DIR
