@@ -1,0 +1,17 @@
+set -xe
+BRANCH=$BRANCH
+
+
+source .properties/$BRANCH.properties
+
+APP_BASE_IMAGE_REPO=$APP_BASE_IMAGE_REPO
+APP_BASE_IMAGE_TAG=$APP_BASE_IMAGE_TAG
+
+APP_BASE_IMAGE_REPO_TAG=$APP_BASE_IMAGE_REPO:$APP_BASE_IMAGE_TAG
+
+docker build --network=host -t $APP_BASE_IMAGE_REPO_TAG \
+    --build-arg SERVICE_BASE_ENV=$BRANCH \
+    --build-arg SERVICE_BASE_IMAGE=$APP_BASE_IMAGE_REPO_TAG \
+    --build-arg DOCLING_MODELS=$DOCLING_MODELS \
+    --build-arg NANONET_OCR=$NANONET_OCR \
+    . -f Dockerfile.base

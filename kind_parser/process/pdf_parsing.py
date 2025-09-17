@@ -1,0 +1,167 @@
+import logging
+import os
+from typing import List, Dict, Any
+from pathlib import Path
+import shutil
+
+from multiprocessing import Pool, cpu_count
+
+from core.processing import ProcessingStep
+from process.base_step import BaseStep
+from service_object.document_provider import DocumentProvider
+from service_object.pdf_converter import PDFConverter
+from models.mcp_infos import FileInfo, DocumentTree
+from utils.utils import create_directory
+from utils.constants import FolderName, FileName
+import ops_logging
+
+def process_document(task: Dict[str, Any]):
+    
+    target_id = task["target_id"]
+    target_source_dir = task["target_source_dir"]
+    output_dir = task["output_dir"]
+
+    pid = os.getpid()
+    worker_logger = ops_logging.get_logger(f"worker-{pid}")
+    # worker_logger = logging.getLogger(f"worker_{pid}")
+    # if not worker_logger.handlers:
+    #     handler = logging.StreamHandler()
+    #     formatter = logging.Formatter(f'[%(asctime)s][Worker-{pid}][{source_dir.name}] %(message)s')
+    #     handler.setFormatter(formatter)
+    #     worker_logger.addHandler(handler)
+    #     worker_logger.setLevel(logging.INFO)
+
+    doc_provider = DocumentProvider(logger=worker_logger)
+    converter = PDFConverter(
+        logger=worker_logger,
+        model_path=task["model_path"],
+        num_threads=task["num_threads"],
+        image_resolution=task["image_resolution"],
+        local_gpu_id=task["gpu_id"]
+    )
+
+    meta_info = doc_provider.get_meta_info(target_source_dir)
+
+    if not meta_info:
+        worker_logger.warning(f"Skipping {target_source_dir} due to missing meta info")
+        return
+    
+    worker_logger.info(f"Processing started for {meta_info.id}_{meta_info.name}")
+    result_path = output_dir / meta_info.id
+    create_directory(result_path)
+
+    try:
+        source_meta_path = target_source_dir / FileName.TERMS_FILE_LIST
+        dest_meta_path = result_path / "termsFileList.json"
+        
+        if source_meta_path.exists():
+            shutil.copy2(source_meta_path, dest_meta_path)
+            worker_logger.info(f"Copied termsFileList.json to {dest_meta_path}")
+        else:
+            worker_logger.warning(f"Source meta file not found for copying: {source_meta_path}")
+    except Exception as e:
+        worker_logger.error(f"Failed to copy termsFileList.json: {e}")
+    
+
+    def _process_node_recursively_worker(node, base_path, current_output_path, doc_tree, doc_provider, converter, logger):
+        node_path = current_output_path / doc_provider.sanitize_title(node.title)
+        create_directory(node_path)
+
+        children = doc_tree.get_children(node)
+
+        pdf_file_path = doc_provider.get_pdf_path(node, base_path)
+        if pdf_file_path:
+            gwan_children = [child for child in children if child.type == 'gwan']
+            if gwan_children:
+                logger.info(f"Found {len(gwan_children)}'gwan'")
+                toc_content = "\n".join([child.title for child in gwan_children])
+                with open(node_path / FileName.TOC, 'w', encoding='utf-8') as f:
+                    f.write(toc_content)
+
+            logger.info(f"Converting main doc: {pdf_file_path}")
+            converter.convert_file(file_path=pdf_file_path, result_dir=node_path)
+
+        for child_node in children:
+            if child_node.type not in ['jo']:
+                _process_node_recursively_worker(child_node, base_path, node_path, doc_tree, doc_provider, converter, logger)
+
+    def _process_special_file_list_worker(file_list, base_path, result_path, folder_name, doc_provider, converter, logger):
+        if not file_list: return
+        target_path = result_path / folder_name
+        create_directory(target_path)
+        for file_info in file_list:
+            title = file_info.get('title')
+            file_name = file_info.get('fileName')
+            if not title or not file_name: continue
+            sanitized_title = doc_provider.sanitize_title(title)
+            item_result_dir = target_path / sanitized_title
+            create_directory(item_result_dir)
+            pdf_path = base_path / file_name
+            if pdf_path.exists():
+                logger.info(f"Converting attachment: {pdf_path}")
+                converter.convert_file(pdf_path, item_result_dir)
+            else:
+                logger.warning(f"Attached PDF not found: {pdf_path}")
+
+    if meta_info.fileInfos:
+        doc_tree = doc_provider.get_document_tree(meta_info)
+        for root_node in doc_tree.get_root_nodes():
+            _process_node_recursively_worker(
+                node=root_node, 
+                base_path=target_source_dir, 
+                current_output_path=result_path, 
+                doc_tree=doc_tree, 
+                doc_provider=doc_provider,
+                converter=converter,
+                logger=worker_logger
+            )
+        _process_special_file_list_worker(
+            file_list=meta_info.attachedInfos, 
+            base_path=target_source_dir, 
+            result_path=result_path, 
+            folder_name=FolderName.ATTACHMENT,
+            doc_provider=doc_provider,
+            converter=converter,
+            logger=worker_logger
+            )
+
+class PDFParsing(BaseStep, ProcessingStep):
+
+    def __init__(self, document_provider: DocumentProvider, pdf_converter_config: Dict[str, Any], 
+                 logger: logging.Logger, num_workers: int):
+        super().__init__(logger)
+        self.document_provider = document_provider
+        self.pdf_converter_config = pdf_converter_config
+        self.num_workers = num_workers
+
+    def execute(self, context: Dict[str, Any]) -> None:
+        data_dir: Path = context["data_dir"]
+        output_dir: Path = context["output_dir"]
+        target_list: List = context["target_list"]
+        # file_list_path: Path = context["file_list_path"]
+        
+        create_directory(output_dir)
+        
+        # context["source_dirs"] = source_dirs 
+
+        tasks = []
+
+        for target in target_list:
+            task = {
+                "target_id": Path(target[0]),
+                "target_source_dir": data_dir / Path(target[2]),
+                "output_dir": output_dir,
+                "model_path": self.pdf_converter_config["model_path"],
+                "num_threads": self.pdf_converter_config["num_threads"],
+                "image_resolution": self.pdf_converter_config["image_resolution"],
+                "timeout": 120,
+                "gpu_id": self.pdf_converter_config["gpu_id"]
+            }
+            tasks.append(task)
+
+        self.logger.info(f"Starting PDF conversion for {len(tasks)} documents using {self.num_workers} workers")
+
+        with Pool(processes=self.num_workers) as pool:
+            pool.map(process_document, tasks)
+
+        self.logger.info("All PDF conversion tasks completed")
