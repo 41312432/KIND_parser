@@ -17,8 +17,12 @@ class DBUploading(BaseStep, ProcessingStep):
         target_list: List = context["target_list"]
 
         for target in target_list:
-            target_id = Path(target[0])
-            target_folder = output_dir / target_id
+            target_mcp_id = target['id']
+            product_code = target['product_code']
+            sale_start_date = target['sale_start_date']
+            revision_date = target['revision_date']
+            
+            target_folder = output_dir / target_mcp_id
             
             self.logger.info(f"\n===== Starting DB upload for: {target_folder} =====")
 
@@ -28,21 +32,28 @@ class DBUploading(BaseStep, ProcessingStep):
             
             try:
                 # 1. DB 연결, 상태 초기화, 기존 데이터 삭제
-                self.uploader.initialize_for_product(target_folder, target_id)
+                self.uploader.initialize_for_product(target_folder, target_mcp_id)
 
                 # 2. 메인 약관 본문 업로드
                 self.uploader.upload_main_terms(target_folder)
 
                 # 3. 별표/법률 업로드
                 self.uploader.upload_attachments(target_folder)
+
+                # 4. Status 업데이트
+                self.uploader.update_product_status(revision_date, product_code, sale_start_date, 3)
                 
-                # 4. 요약 출력
+                self.uploader.commit()
+                self.logger.info(f"Successfully committed all chagnes for {target_mcp_id}")
+
+                # 5. 요약 출력
                 self.uploader.print_summary()
 
             except Exception as e:
                 self.logger.error(f"!!! Unhandled exception during DB processing for {target_folder}: {e}", exc_info=True)
+                self.uploader.rollback()
             finally:
                 # 5. 모든 작업 후 커밋 및 연결 종료
-                self.uploader.commit_and_close()
+                self.uploader.close()
         
         self.logger.info("\n===== All DB upload tasks are complete. =====")

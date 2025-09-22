@@ -12,7 +12,7 @@ config = {
     "user": os.environ.get("DB_USER"),
     "password": os.environ.get("DB_PASSWORD"),
     "database": os.environ.get("DB_DATABASE", "dbkind"),
-    # "cursorclass": pymysql.cursors.DictCursor
+    "cursorclass": pymysql.cursors.DictCursor
 }
 
 @contextmanager
@@ -35,9 +35,16 @@ def execute(query):
 
 def get_status_target_list_query() -> str:
     query = f"""
-        SELECT psi.mcp_id AS id, psi.sale_start_date, mpi.pdf_filepath 
-        FROM product_status_info psi 
-        INNER JOIN mcp_product_info mpi ON psi.mcp_id = mpi.id AND psi.sale_start_date = mpi.sale_start_date
-        WHERE psi.status_code = 1 
+        SELECT 
+            psi.mcp_id AS id,
+            psi.sale_start_date,
+            mpi.pdf_filepath,
+            psi.revision_date,
+            psi.product_code
+        FROM product_status_info psi
+        INNER JOIN mcp_product_info mpi
+            ON psi.mcp_id = mpi.id
+            AND psi.sale_start_date = mpi.sale_start_date
+        WHERE psi.status_code = 2
         """
     return query

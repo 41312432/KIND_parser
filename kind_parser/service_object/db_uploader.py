@@ -18,6 +18,7 @@ class DBUploader:
         self.cursor = None
         self.BODY_TABLE = 'product_terms_content_body'
         self.ATTACH_TABLE = 'product_terms_content_attach'
+        self.STATUS_TABLE = 'product_status_info'
         self.meta_info = {}
 
         self.current_category_idx = 0
@@ -190,17 +191,36 @@ class DBUploader:
             self.logger.error(f"DB INSERT ERROR on '{kwargs.get('category_nm')}': {e}")
             self.conn.rollback()
 
+    def update_product_status(self, revision_date, product_code, sale_start_date, status_code):
+
+        pk_str = f"{revision_date}|{product_code}|{sale_start_date}"
+        self.logger.info(f"Staging status update for PK({pk_str}) to {status_code}.")
+        query = f"""
+            UPDATE {self.STATUS_TABLE}
+            SET status_code = %s
+            WHERE revision_date = %s AND product_code = %s AND sale_start_date = %s
+        """
+        try:
+            self.cursor.execute(query, (status_code, revision_date, product_code, sale_start_date))
+        except Exception as e:
+            self.logger.error(f"DB UPDATE ERROR on status for PK({pk_str}): {e}")
+            raise
+
+    def commit(self):
+        if self.conn:
+            self.conn.commit()
+
+    def rollback(self):
+        if self.conn:
+            self.conn.rollback()
+    
+    def close(self):
+        if self.cursor:
+            self.cursor.close()
+        if self.conn:
+            self.conn.close()
+
     def print_summary(self):
         self.logger.info("\n=== DB Save Summary ===")
         self.logger.info(f"Total {len(self.saved_body_data)} items inserted into '{self.BODY_TABLE}'.")
         self.logger.info(f"Total {len(self.saved_attach_data)} items inserted into '{self.ATTACH_TABLE}'.")
-
-    def commit_and_close(self):
-        if self.conn:
-            try:
-                self.conn.commit()
-                self.logger.info("All data successfully committed.")
-            finally:
-                self.cursor.close()
-                self.conn.close()
-                self.logger.info("Database connection closed.")
