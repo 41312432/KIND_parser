@@ -107,6 +107,7 @@ class ContentStructurer:
                 split_contents = self._split_content_by_articles(content)
                 
                 if split_contents:
+                    new_dirs = []
                     for title, article_content in split_contents.items():
                         sanitized_name = re.sub(r'[\\/*?:"<>|]', '_', title.replace('## ', '').strip()).strip()
                         article_dir = root_path / sanitized_name
@@ -114,6 +115,9 @@ class ContentStructurer:
                         with open(article_dir / content_path.name, 'w', encoding='utf-8') as f:
                             f.write(article_content)
                         self.logger.info(f"Created article: {article_dir / content_path.name}")
+                        new_dirs.append(sanitized_name)
+
+                    dirs[:] = [d for d in dirs if d not in new_dirs]
 
     def _should_process_directory_for_jo(self, path: Path) -> bool:
         if FolderName.LAW in str(path) or FolderName.ATTACHMENT in str(path):
