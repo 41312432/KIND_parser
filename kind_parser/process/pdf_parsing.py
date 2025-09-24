@@ -54,7 +54,9 @@ class PDFParsing(BaseStep, ProcessingStep):
     def run_gpu_worker(task_info: Dict[str, Any]):
         pid = os.getpid()
         global_rank = task_info["global_rank"]
-        worker_logger = ops_logging.get_logger(f"Gpu-Worker-{pid}-GPU-{global_rank}")
+        local_gpu_id = task_info['local_gpu_id']
+        os.environ['CUDA_VISIBLE_DEVICES'] = str(local_gpu_id)
+        worker_logger = ops_logging.get_logger(f"Gpu-Worker-{pid}-GPU-{global_rank}-localGPU-{local_gpu_id}")
 
         my_target_list = [
             target for i, target in enumerate(task_info["target_list"])
@@ -72,7 +74,8 @@ class PDFParsing(BaseStep, ProcessingStep):
                 "data_dir": task_info["data_dir"],
                 "output_dir": task_info["output_dir"],
                 "pdf_converter_config": config,
-                "local_gpu_id": task_info["local_gpu_id"],
+                "local_gpu_id": 0,
+                # "local_gpu_id": local_gpu_id, NOTE: It's NCCL Docling BUG (OR P in P ?)
                 "parent_pid": pid,
                 "parent_gpu_global_rank": global_rank
             }
@@ -136,7 +139,7 @@ class PDFParsing(BaseStep, ProcessingStep):
 
         logger.debug(f"[GPU-{parent_rank}][Worker-{parent_pid}][Inner worker-{worker_pid}] Processing started for {meta_info.id}_{meta_info.name}")
         result_path = output_dir / target_id
-        # create_directory(result_path)
+        create_directory(result_path)
         
         try:
             meta_save_path = result_path / "termsFileList.json"

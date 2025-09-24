@@ -45,6 +45,6 @@ def get_status_target_list_query() -> str:
         INNER JOIN mcp_product_info mpi
             ON psi.mcp_id = mpi.id
             AND psi.sale_start_date = mpi.sale_start_date
-        WHERE psi.status_code = 3
+        WHERE psi.status_code = 2
         """
     return query
