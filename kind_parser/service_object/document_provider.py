@@ -3,6 +3,7 @@ import re
 import logging
 from pathlib import Path
 from typing import Optional
+from dataclasses import fields
 
 from models.mcp_infos import FileInfo, MetaInfo, DocumentTree
 from utils.constants import FileName
@@ -15,18 +16,18 @@ class DocumentProvider:
         return re.sub(r'[\\/*?:"<>|]', '_', title).strip()
 
     def get_meta_info(self, source_dir: Path) -> Optional[MetaInfo]:
-        meta_file_path = source_dir / FileName.TERMS_FILE_LIST
+        meta_file_path = source_dir / "termsFileList.json"
         if not meta_file_path.exists():
-            self.logger.warning(f"Meta file not found: {meta_file_path}")
-            return None
+            meta_file_path = source_dir / "termsFileList.txt"
+            if not meta_file_path.exists():
+                self.logger.warning(f"Meta file not found in {source_dir}")
+                return None
         try:
             with open(meta_file_path, 'r', encoding='utf-8') as f:
                 data = json.load(f)
-                if 'fileInfos' in data and data['fileInfos']:
-                    data['fileInfos'] = [FileInfo(**info) for info in data['fileInfos']]
-                return MetaInfo(**data)
+                return MetaInfo.from_dict(data)
         except Exception as e:
-            self.logger.error(f"Failed to load or parse meta file {meta_file_path}: {e}")
+            self.logger.error(f"Failed to load or parse meta file {meta_file_path}: {e}", exc_info=True)
             return None
 
     def get_document_tree(self, meta_info: MetaInfo) -> DocumentTree:

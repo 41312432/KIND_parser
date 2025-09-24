@@ -25,45 +25,6 @@ from process.db_uploading import DBUploading
 
 logger = ops_logging.get_logger("service")
 
-def run_local_worker(task_info: dict):
-    pid = os.getpid()
-    worker_logger = ops_logging.get_logger(f"worker-{pid}")
-
-    local_gpu_id = task_info["local_gpu_id"]
-    global_rank = task_info["global_rank"]
-    
-    full_target_list = task_info["target_list"]
-    world_size = task_info["num_global_worker"]
-    
-    my_target_list = [
-        target for i, target in enumerate(full_target_list)
-        if i % world_size == global_rank
-    ]
-    
-    args = task_info["args"]
-    pdf_converter_config = {
-        "model_path": args.model_path,
-        "num_threads": args.accelerator_thread,
-        "image_resolution": args.image_resolution,
-        "gpu_id": local_gpu_id
-    }
-    document_provider = DocumentProvider(logger=worker_logger)
-    
-    pdf_conversion_step = PDFParsing(
-        document_provider=document_provider,
-        pdf_converter_config=pdf_converter_config,
-        logger=worker_logger,
-        num_workers=args.pdf_parsing_num_workers,
-    )
-    
-    context = {
-        "data_dir": Path(args.data_dir),
-        "output_dir": Path(args.output_dir),
-        "target_list": my_target_list, # 필터링된 목록을 context에 전달
-    }
-    
-    pdf_conversion_step.execute(context)
-
 def main():
     logger.info("Starting processing pipeline...")
     args = get_args()
@@ -73,54 +34,25 @@ def main():
     target_list = execute(get_status_target_list_query())
 
     if 'pdf_conversion' in args.steps:
-        logger.info(f"Process PDF Converting")
+        logger.info(f"Process 1. Start PDF converting")
 
         pdf_converter_config = {
             "model_path": args.model_path,
-            "num_threads": args.accelerator_thread,
-            "image_resolution": args.image_resolution
+            "accelerator_thread": args.accelerator_thread,
+            "image_resolution": args.image_resolution,
+            "num_local_worker": args.num_local_worker,
+            "num_global_worker": args.num_global_worker,
+            "root_global_worker_id": args.root_global_worker_id,
+            "pdf_parsing_num_workers": args.pdf_parsing_num_workers
         }
 
-        gpu_worker_tasks = []
+        # 1. PDF Parsing
+        pdf_parsing = PDFParsing(pdf_converter_config=pdf_converter_config, logger=logger)
 
-        for i in range(args.num_local_worker):
-            local_gpu_id = i
-            global_rank = args.root_global_worker_id+i
-
-            task_info = {
-                "local_gpu_id": local_gpu_id,
-                "global_rank": global_rank,
-                "num_global_worker": args.num_global_worker,
-                "target_list": target_list,
-                "args": args # 나머지 모든 인자를 그대로 전달
-            }
-            gpu_worker_tasks.append(task_info)
-
-        processes = []
-        for task in gpu_worker_tasks:
-            p = Process(target=run_local_worker, args=(task, ))
-            processes.append(p)
-            p.start()
-        for p in processes:
-            p.join()
-
-        # with Pool(processes=args.num_local_worker) as pool:
-        #     pool.map(run_local_worker, gpu_worker_tasks)
-
-        # document_provider = DocumentProvider(logger=logger)
-
-        # # 1. PDF Parsing
-        # pdf_conversion = PDFParsing(
-        #     document_provider=document_provider,
-        #     pdf_converter_config=pdf_converter_config,
-        #     logger=logger,
-        #     num_workers=args.pdf_parsing_num_workers
-        # )
-
-        # steps.append(pdf_conversion)
+        steps.append(pdf_parsing)
 
     if 'vlm_processing' in args.steps:
-        logger.info(f"Process Table Parsing")
+        logger.info(f"Process 2. Table Parsing")
 
         vlm_processor = VLMTableProcessor(logger=logger, base_url=args.vlm_base_url, model_name=args.vlm_model_name, concurrency_limit=args.vlm_concurrency_limit)
 
@@ -132,7 +64,7 @@ def main():
         steps.append(vlm_table_processing)
     
     if 'content_structuring' in args.steps:
-        logger.info(f"Process Content Structuring")
+        logger.info(f"Process 3. Content Structuring")
 
         content_structurer = ContentStructurer(logger=logger)
         document_provider = DocumentProvider(logger=logger)
@@ -146,7 +78,7 @@ def main():
         steps.append(content_structuring)
 
     if 'db_loading' in args.steps:
-        logger.info(f"Process DB Loading")
+        logger.info(f"Process 4. DB Loading")
 
         db_uploader = DBUploader(db_config=config, logger=logger) #FIXME: Refactoring using db.py
         db_uploading = DBUploading(uploader=db_uploader,logger=logger)
@@ -162,7 +94,7 @@ def main():
     
     orchestrator.run(initial_context)
 
-    logger.info("Processing pipeline finished successfully.")
+    logger.info("Processing pipeline finished.")
 
 if __name__ == "__main__":
     main()
