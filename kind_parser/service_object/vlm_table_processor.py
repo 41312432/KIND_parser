@@ -20,7 +20,9 @@ class VLMTableProcessor:
 
     def _encode_image(self, image_path: str) -> str:
         with open(image_path, "rb") as image_file:
-            return base64.b64encode(image_file.read()).decode("utf-8")
+            encoded_image = base64.b64encode(image_file.read()).decode("utf-8")
+        image_file.close()
+        return encoded_image
 
     # FIXME: Fit to Nanonet Model
     def _fix_html_table(self, html_string: str) -> str:
@@ -119,6 +121,8 @@ class VLMTableProcessor:
                 fixed_html = self._fix_html_table(html_output)
                 with open(output_filepath, 'w', encoding='utf-8') as f:
                     f.write(fixed_html)
+                f.close()
+
             except Exception as e:
                 self.logger.error(f"Error processing image {image_path}: {e}")
     
@@ -135,6 +139,7 @@ class VLMTableProcessor:
             if content_md_path.exists() and parsed_dir_path.is_dir():
                 with open(content_md_path, 'r', encoding='utf-8') as f:
                     md_content = f.read()
+                f.close()
 
                 md_tables_found = md_table_pattern.findall(md_content)
                 parsed_files = sorted(
@@ -150,6 +155,7 @@ class VLMTableProcessor:
                     for filename in parsed_files:
                         with open(parsed_dir_path / filename, 'r', encoding='utf-8') as f:
                             final_tables_to_insert.append(f.read())
+                        f.close()
                 else:
                     self.logger.warning(f"Table count mismatch in {dirpath}. Skipping replacement.")
                     continue
@@ -166,6 +172,7 @@ class VLMTableProcessor:
                     output_path = current_dir / 'content2.md'
                     with open(output_path, 'w', encoding='utf-8') as f:
                         f.write(modified_md_content)
+                    f.close()
 
     # TODO: Cannot merged moment (Maybe attached)
     def _merge_adjacent_tables(self, root_dir: Path):
@@ -177,6 +184,7 @@ class VLMTableProcessor:
                 output_path = current_dir / 'content3.md'
                 with open(content2_path, 'r', encoding='utf-8') as f:
                     content = f.read()
+                f.close()
                 
                 soup = BeautifulSoup(content, 'html.parser')
                 while True:
@@ -202,6 +210,7 @@ class VLMTableProcessor:
                 
                 with open(output_path, 'w', encoding='utf-8') as f:
                     f.write(str(soup))
+                f.close()
 
     async def process_all_tables(self, root_dir: Path):
         image_paths = [str(p) for p in root_dir.glob('**/table_images/*.png')]
