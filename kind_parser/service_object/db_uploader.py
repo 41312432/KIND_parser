@@ -150,8 +150,10 @@ class DBUploader:
     def _get_body_file_info(self, folder_name: str) -> Optional[Dict]:
         if not self.meta_info or 'fileInfos' not in self.meta_info: return None
         for file_info in self.meta_info['fileInfos']:
-            if file_info.get('title') == folder_name:
+            title = file_info.get('title')
+            if title.strip() == folder_name.strip():
                 return file_info
+        self.logger.warning(f"Could not find matching fileInfo for body folder: '{folder_name}'")
         return None
         
     def _get_attach_file_info(self, folder_name: str, content_type: str) -> Optional[Dict]:
@@ -159,8 +161,10 @@ class DBUploader:
         info_list = self.meta_info.get(info_list_key, [])
         if not info_list: return None
         for file_info in info_list:
-            if file_info.get('title', '').strip() == folder_name.strip():
+            title = file_info.get('title')
+            if title.strip() == folder_name.strip():
                 return file_info
+        self.logger.warning(f"Could not find matching {info_list_key} for folder name: '{folder_name}'")
         return None
 
     def _save_body_to_db(self, **kwargs):
