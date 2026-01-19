@@ -4,9 +4,10 @@ def get_args():
     parser = argparse.ArgumentParser(description="MCP Document Processing Pipeline")
 
     # Distribution args
-    parser.add_argument('--num_global_worker', type=int, default=5)
-    parser.add_argument('--num_local_worker', type=int, default=5)
+    parser.add_argument('--num_global_worker', type=int, default=2)
+    parser.add_argument('--num_local_worker', type=int, default=2)
     parser.add_argument('--root_global_worker_id', type=int, default=0)
+    parser.add_argument('--pdf_parsing_num_workers', type=int, default=20)
 
     # Common Path args
     parser.add_argument('--model_path', type=str, default='/workspace/mnt/local-repo/hf_models/docling-models/model_artifacts')
@@ -16,7 +17,6 @@ def get_args():
     
     # Step 1: PDF Conversion args
     parser.add_argument('--accelerator_thread', type=int, default=128)
-    parser.add_argument('--pdf_parsing_num_workers', type=int, default=20)
     parser.add_argument('--image_resolution', type=float, default=4.0)
     
     # Step 2: VLM Processing args
@@ -27,3 +27,5 @@ def get_args():
     parser.add_argument('--steps', type=str, nargs='+', choices=['pdf_conversion', 'vlm_processing', 'content_structuring', 'db_loading'])
 
     return parser.parse_args()
+
+    

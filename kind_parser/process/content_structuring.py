@@ -19,7 +19,7 @@ class ContentStructuring(BaseStep, ProcessingStep):
         target_list: List = context["target_list"]
 
         for target in target_list:
-            target_id = Path(target[0])
+            target_id = Path(target['id'])
             result_path = output_dir / target_id
             
             if not result_path.exists():
